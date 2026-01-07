@@ -447,7 +447,7 @@ class UniversalGameLibraryApp(MDApp):
         if nickname:
             self.profile_name = nickname
         self.update_profile_label()
-
+        # update profile label
     def update_profile_label(self):
         account = self.root.ids.screen_manager.get_screen("account")
         account.ids.account_name.text = self.profile_name
