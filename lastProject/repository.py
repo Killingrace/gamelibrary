@@ -1,0 +1,345 @@
+import os
+import sqlite3
+from datetime import datetime
+
+from data import MASTER_GAMES
+
+DATABASE_NAME = "games.db"
+
+
+class GameRepository:
+    def __init__(self, base_dir):
+        self.db_path = os.path.join(base_dir, DATABASE_NAME)
+
+    def initialize(self):
+        self._create_tables()
+        self._ensure_columns()
+        self._seed_master_games()
+        self._refresh_master_games()
+
+    def _get_connection(self):
+        return sqlite3.connect(self.db_path)
+
+    def _create_tables(self):
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS master_games (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    release_year INTEGER NOT NULL,
+                    platforms TEXT NOT NULL,
+                    genres TEXT NOT NULL,
+                    developer TEXT NOT NULL,
+                    publisher TEXT NOT NULL,
+                    franchise TEXT,
+                    release_date TEXT NOT NULL,
+                    platform_category TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    popularity INTEGER NOT NULL,
+                    screenshots TEXT NOT NULL
+                )
+                """
+            )
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_games (
+                    game_id INTEGER PRIMARY KEY,
+                    owned INTEGER NOT NULL DEFAULT 0,
+                    played INTEGER NOT NULL DEFAULT 0,
+                    completion_pct INTEGER NOT NULL DEFAULT 0,
+                    hours_played REAL NOT NULL DEFAULT 0,
+                    notes TEXT NOT NULL DEFAULT '',
+                    completion_year TEXT NOT NULL DEFAULT '',
+                    platforms_played TEXT NOT NULL DEFAULT '',
+                    last_updated TEXT NOT NULL,
+                    FOREIGN KEY(game_id) REFERENCES master_games(id)
+                )
+                """
+            )
+            conn.commit()
+
+    def _ensure_columns(self):
+        self._ensure_table_columns(
+            "master_games",
+            {
+                "developer": "TEXT NOT NULL DEFAULT ''",
+                "publisher": "TEXT NOT NULL DEFAULT ''",
+                "description": "TEXT NOT NULL DEFAULT ''",
+                "popularity": "INTEGER NOT NULL DEFAULT 0",
+                "screenshots": "TEXT NOT NULL DEFAULT ''",
+            },
+        )
+        self._ensure_table_columns(
+            "user_games",
+            {
+                "completion_year": "TEXT NOT NULL DEFAULT ''",
+                "platforms_played": "TEXT NOT NULL DEFAULT ''",
+                "main_story_completed": "INTEGER NOT NULL DEFAULT 0",
+            },
+        )
+
+    def _ensure_table_columns(self, table_name, columns):
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            existing = {row[1] for row in cursor.fetchall()}
+            for column, definition in columns.items():
+                if column not in existing:
+                    cursor.execute(
+                        f"ALTER TABLE {table_name} ADD COLUMN {column} {definition}"
+                    )
+            conn.commit()
+
+    def _seed_master_games(self):
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM master_games")
+            count = cursor.fetchone()[0]
+            if count > 0:
+                return
+            for game in MASTER_GAMES:
+                cursor.execute(
+                    """
+                    INSERT INTO master_games (
+                        title, release_year, platforms, genres, developer, publisher,
+                        franchise, release_date, platform_category, description,
+                        popularity, screenshots
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        game["title"],
+                        game["release_year"],
+                        game["platforms"],
+                        game["genres"],
+                        game["developer"],
+                        game["publisher"],
+                        game["franchise"],
+                        game["release_date"],
+                        game["platform_category"],
+                        game["description"],
+                        int(game["popularity"]),
+                        game["screenshots"],
+                    ),
+                )
+            conn.commit()
+
+    def _refresh_master_games(self):
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            for game in MASTER_GAMES:
+                cursor.execute(
+                    """
+                    UPDATE master_games
+                    SET developer = ?,
+                        publisher = ?,
+                        description = ?,
+                        popularity = ?,
+                        screenshots = ?
+                    WHERE title = ?
+                    """,
+                    (
+                        game["developer"],
+                        game["publisher"],
+                        game["description"],
+                        int(game["popularity"]),
+                        game["screenshots"],
+                        game["title"],
+                    ),
+                )
+            conn.commit()
+
+    def list_master_games(self, filters):
+        query, params = self._build_master_query(filters, include_order=True)
+        with self._get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+
+    def list_library_games(self, filters):
+        query, params = self._build_master_query(filters, include_order=False)
+        base_filter = (
+            " AND (COALESCE(u.owned, 0) = 1 "
+            "OR COALESCE(u.played, 0) = 1 "
+            "OR COALESCE(u.completion_pct, 0) > 0)"
+        )
+        query += base_filter
+        query = self._apply_order(query, filters)
+        with self._get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_game(self, game_id):
+        with self._get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT m.*, COALESCE(u.owned, 0) AS owned,
+                       COALESCE(u.played, 0) AS played,
+                       COALESCE(u.completion_pct, 0) AS completion_pct,
+                       COALESCE(u.hours_played, 0) AS hours_played,
+                       COALESCE(u.notes, '') AS notes,
+                       u.last_updated AS last_updated
+                FROM master_games m
+                LEFT JOIN user_games u ON m.id = u.game_id
+                WHERE m.id = ?
+                """,
+                (game_id,),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def upsert_user_game(
+        self,
+        game_id,
+        owned,
+        played,
+        main_story_completed,
+        completion_pct,
+        hours_played,
+        notes,
+        completion_year,
+        platforms_played,
+    ):
+        timestamp = datetime.utcnow().isoformat(timespec="seconds")
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO user_games (game_id, owned, played, completion_pct,
+                                        main_story_completed, hours_played, notes,
+                                        completion_year, platforms_played, last_updated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(game_id) DO UPDATE SET
+                    owned = excluded.owned,
+                    played = excluded.played,
+                    completion_pct = excluded.completion_pct,
+                    main_story_completed = excluded.main_story_completed,
+                    hours_played = excluded.hours_played,
+                    notes = excluded.notes,
+                    completion_year = excluded.completion_year,
+                    platforms_played = excluded.platforms_played,
+                    last_updated = excluded.last_updated
+                """,
+                (
+                    game_id,
+                    int(owned),
+                    int(played),
+                    int(completion_pct),
+                    int(main_story_completed),
+                    float(hours_played),
+                    notes,
+                    completion_year,
+                    platforms_played,
+                    timestamp,
+                ),
+            )
+            conn.commit()
+
+    def stats_summary(self):
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM master_games")
+            total_games = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM user_games WHERE owned = 1")
+            owned = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM user_games WHERE played = 1")
+            played = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM user_games WHERE completion_pct > 0")
+            completed = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM user_games WHERE completion_pct = 100")
+            full = cursor.fetchone()[0]
+            ratio = (completed / total_games) * 100 if total_games else 0
+            return {
+                "total_games": total_games,
+                "owned": owned,
+                "played": played,
+                "completed": completed,
+                "full": full,
+                "completion_ratio": ratio,
+            }
+
+    def _build_master_query(self, filters, include_order):
+        query = (
+            "SELECT m.*, COALESCE(u.owned, 0) AS owned, "
+            "COALESCE(u.played, 0) AS played, "
+            "COALESCE(u.completion_pct, 0) AS completion_pct, "
+            "COALESCE(u.hours_played, 0) AS hours_played, "
+            "COALESCE(u.notes, '') AS notes, "
+            "COALESCE(u.completion_year, '') AS completion_year, "
+            "COALESCE(u.platforms_played, '') AS platforms_played, "
+            "COALESCE(u.main_story_completed, 0) AS main_story_completed, "
+            "u.last_updated AS last_updated "
+            "FROM master_games m "
+            "LEFT JOIN user_games u ON m.id = u.game_id "
+            "WHERE 1 = 1"
+        )
+        params = []
+
+        search = filters.get("search")
+        if search:
+            query += " AND m.title LIKE ?"
+            params.append(f"%{search}%")
+
+        platform = filters.get("platform")
+        if platform:
+            query += " AND m.platforms LIKE ?"
+            params.append(f"%{platform}%")
+
+        genre = filters.get("genre")
+        if genre:
+            query += " AND m.genres LIKE ?"
+            params.append(f"%{genre}%")
+
+        publisher = filters.get("publisher")
+        if publisher:
+            query += " AND m.publisher LIKE ?"
+            params.append(f"%{publisher}%")
+
+        developer = filters.get("developer")
+        if developer:
+            query += " AND m.developer LIKE ?"
+            params.append(f"%{developer}%")
+
+        year_from = filters.get("year_from")
+        if year_from is not None:
+            query += " AND m.release_year >= ?"
+            params.append(year_from)
+
+        year_to = filters.get("year_to")
+        if year_to is not None:
+            query += " AND m.release_year <= ?"
+            params.append(year_to)
+
+        if filters.get("owned_only"):
+            query += " AND COALESCE(u.owned, 0) = 1"
+
+        if filters.get("played_only"):
+            query += " AND COALESCE(u.played, 0) = 1"
+
+        if filters.get("completed_only"):
+            query += " AND COALESCE(u.completion_pct, 0) > 0"
+
+        if filters.get("full_only"):
+            query += " AND COALESCE(u.completion_pct, 0) = 100"
+
+        if include_order:
+            query = self._apply_order(query, filters)
+        return query, params
+
+    def _apply_order(self, query, filters):
+        sort_by = filters.get("sort_by") or "popularity"
+        sort_dir = filters.get("sort_dir") or "desc"
+        order_columns = {
+            "title": "m.title",
+            "release_year": "m.release_year",
+            "popularity": "m.popularity",
+        }
+        order_column = order_columns.get(sort_by, "m.popularity")
+        direction = "DESC" if str(sort_dir).lower() == "desc" else "ASC"
+        return f"{query} ORDER BY {order_column} {direction}"

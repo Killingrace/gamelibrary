@@ -1,0 +1,720 @@
+#:import dp kivy.metrics.dp
+
+<DrawerItem@OneLineIconListItem>:
+    icon: ""
+    theme_text_color: "Custom"
+    text_color: app.text_color
+    IconLeftWidget:
+        icon: root.icon
+        theme_text_color: "Custom"
+        text_color: app.subtext_color
+
+<HomeScreen@MDScreen>:
+    md_bg_color: app.bg_color
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Universal Game Library Tracker"
+            left_action_items: [["menu", lambda x: app.toggle_drawer()]]
+            elevation: 0
+            md_bg_color: app.surface_color
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(40)
+                spacing: dp(8)
+                MDIconButton:
+                    icon: "sort"
+                    on_release: app.open_sort_menu()
+                MDIconButton:
+                    icon: "filter-variant"
+                    on_release: app.toggle_filter_panel()
+                MDIconButton:
+                    icon: "magnify"
+                    on_release: app.toggle_search()
+                MDLabel:
+                    id: catalog_sort_label
+                    text: "Popular"
+                    theme_text_color: "Custom"
+                    text_color: app.subtext_color
+                    halign: "right"
+
+            MDBoxLayout:
+                id: catalog_search_container
+                size_hint_y: None
+                height: 0
+                opacity: 0
+                disabled: True
+                MDTextField:
+                    id: catalog_search
+                    hint_text: "Search by title"
+                    mode: "rectangle"
+                    on_text: app.on_search_text(self.text)
+
+                MDCard:
+                    id: catalog_filter_card
+                    size_hint_y: None
+                    height: 0
+                    opacity: 0
+                    disabled: True
+                    padding: dp(12)
+                    spacing: dp(10)
+                    orientation: "vertical"
+                    md_bg_color: app.panel_color
+                    radius: [12, 12, 12, 12]
+
+                    MDLabel:
+                        text: "Filters"
+                        font_style: "Subtitle1"
+                        theme_text_color: "Custom"
+                        text_color: app.text_color
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(44)
+                        spacing: dp(10)
+                        MDTextField:
+                            id: catalog_year_from
+                            hint_text: "Year from"
+                            mode: "rectangle"
+                            input_filter: "int"
+                            size_hint_y: None
+                            height: dp(44)
+                        MDTextField:
+                            id: catalog_year_to
+                            hint_text: "Year to"
+                            mode: "rectangle"
+                            input_filter: "int"
+                            size_hint_y: None
+                            height: dp(44)
+                    MDTextField:
+                        id: catalog_publisher
+                        hint_text: "Publisher"
+                        mode: "rectangle"
+                        size_hint_y: None
+                        height: dp(44)
+                    MDTextField:
+                        id: catalog_developer
+                        hint_text: "Developer"
+                        mode: "rectangle"
+                        size_hint_y: None
+                        height: dp(44)
+                    MDCard:
+                        size_hint_y: None
+                        height: dp(48)
+                        radius: [12, 12, 12, 12]
+                        md_bg_color: app.chip_color
+                        padding: dp(6)
+                        Spinner:
+                            id: catalog_platform
+                            text: "All Platforms"
+                            values: ["All Platforms", "PC", "PS3", "PS4", "PS5", "XBOX ONE", "XBOX SERIES", "NINTENDO SWITCH"]
+                            size_hint: 1, 1
+                            background_color: 0, 0, 0, 0
+                            color: app.text_color
+                    MDTextField:
+                        id: catalog_genre
+                        hint_text: "Genre"
+                        mode: "rectangle"
+                        size_hint_y: None
+                        height: dp(44)
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(40)
+                        spacing: dp(12)
+                        MDRaisedButton:
+                            text: "Apply Filters"
+                            on_release: app.apply_catalog_filters()
+                        MDFlatButton:
+                            text: "Clear filters"
+                            on_release: app.clear_catalog_filters()
+
+            ScrollView:
+                do_scroll_x: False
+                MDGridLayout:
+                    id: catalog_grid
+                    cols: 2
+                    spacing: dp(12)
+                    padding: dp(4)
+                    size_hint_y: None
+                    height: self.minimum_height
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(40)
+                spacing: dp(12)
+                MDFlatButton:
+                    id: catalog_prev_button
+                    text: "Prev"
+                    on_release: app.catalog_prev_page()
+                MDLabel:
+                    id: catalog_page_label
+                    text: "Page 1"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: app.subtext_color
+                MDFlatButton:
+                    id: catalog_next_button
+                    text: "Next"
+                    on_release: app.catalog_next_page()
+
+<LibraryScreen@MDScreen>:
+    md_bg_color: app.bg_color
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "My Games"
+            left_action_items: [["menu", lambda x: app.toggle_drawer()]]
+            elevation: 0
+            md_bg_color: app.surface_color
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(40)
+                spacing: dp(8)
+                MDLabel:
+                    text: "Filter"
+                    size_hint_x: None
+                    width: dp(56)
+                    theme_text_color: "Custom"
+                    text_color: app.subtext_color
+                MDFlatButton:
+                    id: library_filter_all
+                    text: "All"
+                    on_release: app.set_library_status("all")
+                MDFlatButton:
+                    id: library_filter_owned
+                    text: "Owned"
+                    on_release: app.set_library_status("owned")
+                MDFlatButton:
+                    id: library_filter_played
+                    text: "Played"
+                    on_release: app.set_library_status("played")
+                MDFlatButton:
+                    id: library_filter_completed
+                    text: "Completed"
+                    on_release: app.set_library_status("completed")
+                MDFlatButton:
+                    id: library_filter_full
+                    text: "100%"
+                    on_release: app.set_library_status("full")
+
+            MDTextField:
+                id: library_search
+                hint_text: "Search my games"
+                mode: "rectangle"
+            MDFlatButton:
+                text: "Apply Search"
+                on_release: app.apply_library_search()
+
+            ScrollView:
+                do_scroll_x: False
+                MDGridLayout:
+                    id: library_grid
+                    cols: 2
+                    spacing: dp(12)
+                    padding: dp(4)
+                    size_hint_y: None
+                    height: self.minimum_height
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(40)
+                spacing: dp(12)
+                MDFlatButton:
+                    id: library_prev_button
+                    text: "Prev"
+                    on_release: app.library_prev_page()
+                MDLabel:
+                    id: library_page_label
+                    text: "Page 1"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: app.subtext_color
+                MDFlatButton:
+                    id: library_next_button
+                    text: "Next"
+                    on_release: app.library_next_page()
+
+<DetailScreen@MDScreen>:
+    md_bg_color: app.bg_color
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Game Detail"
+            left_action_items: [["arrow-left", lambda x: app.go_back()]]
+            elevation: 0
+            md_bg_color: app.surface_color
+        ScrollView:
+            do_scroll_x: False
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                padding: dp(16)
+                spacing: dp(12)
+
+                MDCard:
+                    orientation: "vertical"
+                    padding: dp(12)
+                    spacing: dp(8)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    md_bg_color: app.card_color
+                    radius: [12, 12, 12, 12]
+                    MDLabel:
+                        id: detail_title
+                        text: "Game Title"
+                        font_style: "H5"
+                        theme_text_color: "Custom"
+                        text_color: app.text_color
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(8)
+                    MDLabel:
+                        id: detail_description
+                        text: "Description"
+                        theme_text_color: "Custom"
+                        text_color: app.subtext_color
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        text_size: self.width, None
+                        line_height: 1.2
+
+                MDLabel:
+                    text: "Gallery"
+                    font_style: "Subtitle1"
+                    theme_text_color: "Custom"
+                    text_color: app.text_color
+                ScrollView:
+                    size_hint_y: None
+                    height: dp(120)
+                    do_scroll_y: False
+                    MDBoxLayout:
+                        id: detail_gallery
+                        spacing: dp(10)
+                        padding: dp(4)
+                        size_hint_x: None
+                        width: self.minimum_width
+
+                MDCard:
+                    orientation: "vertical"
+                    padding: dp(12)
+                    spacing: dp(10)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    md_bg_color: app.panel_color
+                    radius: [12, 12, 12, 12]
+
+                    MDLabel:
+                        text: "Personal Progress"
+                        font_style: "Subtitle1"
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(6)
+                    MDLabel:
+                        text: "Platform played"
+                        font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: app.subtext_color
+                    MDCard:
+                        size_hint_y: None
+                        height: dp(48)
+                        radius: [12, 12, 12, 12]
+                        md_bg_color: app.chip_color
+                        padding: dp(6)
+                        Spinner:
+                            id: detail_platforms_played
+                            text: "Select platform"
+                            values: ["Select platform", "PC", "PS3", "PS4", "PS5", "XBOX ONE", "XBOX SERIES", "NINTENDO SWITCH"]
+                            size_hint: 1, 1
+                            background_color: 0, 0, 0, 0
+                            color: app.text_color
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(32)
+                        spacing: dp(12)
+                        MDCheckbox:
+                            id: detail_owned
+                            on_active: app.refresh_detail_status()
+                        MDLabel:
+                            text: "Owned"
+                            valign: "middle"
+                        MDCheckbox:
+                            id: detail_played
+                            on_active: app.refresh_detail_status()
+                        MDLabel:
+                            text: "Played"
+                            valign: "middle"
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(32)
+                        spacing: dp(12)
+                        MDCheckbox:
+                            id: detail_main_story
+                            on_active: app.refresh_detail_status()
+                        MDLabel:
+                            text: "Completed main story"
+                            valign: "middle"
+                    MDLabel:
+                        text: "Completion"
+                        font_style: "Caption"
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(40)
+                        spacing: dp(12)
+                        Slider:
+                            id: detail_completion
+                            min: 0
+                            max: 100
+                            step: 1
+                            value: 0
+                            on_value: app.update_completion_label(self.value)
+                        MDLabel:
+                            id: detail_completion_label
+                            text: "0%"
+                            size_hint_x: None
+                            width: dp(48)
+                            halign: "right"
+                    MDLabel:
+                        id: detail_status_line
+                        text: "Status: Owned, Played"
+                        font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: app.subtext_color
+                    MDTextField:
+                        id: detail_completion_year
+                        hint_text: "Completion year"
+                        mode: "rectangle"
+                        input_filter: "int"
+                    MDTextField:
+                        id: detail_hours
+                        hint_text: "Time spent (hours)"
+                        mode: "rectangle"
+                        input_filter: "float"
+                    MDTextField:
+                        id: detail_notes
+                        hint_text: "Notes"
+                        mode: "rectangle"
+                        multiline: True
+                    MDLabel:
+                        id: detail_updated
+                        text: "Last updated: Never"
+                        font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: app.muted_text_color
+                    MDRaisedButton:
+                        text: "Save / Complete"
+                        on_release: app.save_detail()
+
+<PreferencesScreen@MDScreen>:
+    md_bg_color: app.bg_color
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Preferences"
+            left_action_items: [["menu", lambda x: app.toggle_drawer()]]
+            elevation: 0
+            md_bg_color: app.surface_color
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+            MDLabel:
+                text: "Theme"
+                font_style: "Subtitle1"
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(32)
+                spacing: dp(12)
+                MDCheckbox:
+                    id: pref_dark_mode
+                    active: True
+                    on_active: app.set_theme("dark") if self.active else None
+                MDLabel:
+                    text: "Dark theme"
+                    valign: "middle"
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(32)
+                spacing: dp(12)
+                MDCheckbox:
+                    id: pref_light_mode
+                    on_active: app.set_theme("light") if self.active else None
+                MDLabel:
+                    text: "Light theme"
+                    valign: "middle"
+
+<AccountScreen@MDScreen>:
+    md_bg_color: app.bg_color
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "My Account"
+            left_action_items: [["menu", lambda x: app.toggle_drawer()]]
+            elevation: 0
+            md_bg_color: app.surface_color
+        ScrollView:
+            do_scroll_x: False
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                padding: dp(16)
+                spacing: dp(12)
+
+                MDCard:
+                    orientation: "vertical"
+                    padding: dp(12)
+                    spacing: dp(8)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    md_bg_color: app.panel_color
+                    radius: [12, 12, 12, 12]
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(48)
+                        spacing: dp(12)
+                        MDIconButton:
+                            icon: "account-circle"
+                            user_font_size: "36sp"
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            MDLabel:
+                                id: account_name
+                                text: "Player One"
+                                font_style: "Subtitle1"
+                                theme_text_color: "Custom"
+                                text_color: app.text_color
+                            MDLabel:
+                                text: "Local profile"
+                                theme_text_color: "Custom"
+                                text_color: app.subtext_color
+                    MDTextField:
+                        id: account_nickname
+                        hint_text: "Nickname"
+                        mode: "rectangle"
+                    MDRaisedButton:
+                        text: "Update profile"
+                        on_release: app.update_profile()
+
+                MDLabel:
+                    text: "Personal Statistics"
+                    font_style: "Subtitle1"
+                MDGridLayout:
+                    cols: 2
+                    spacing: dp(12)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(12)
+                        spacing: dp(6)
+                        size_hint_y: None
+                        height: self.minimum_height
+                        md_bg_color: app.card_color
+                        radius: [12, 12, 12, 12]
+                        MDLabel:
+                            text: "Total games in catalog"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: app.subtext_color
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                        MDLabel:
+                            id: stats_total
+                            text: "0"
+                            font_style: "H6"
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(12)
+                        spacing: dp(6)
+                        size_hint_y: None
+                        height: self.minimum_height
+                        md_bg_color: app.card_color
+                        radius: [12, 12, 12, 12]
+                        MDLabel:
+                            text: "Owned"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: app.subtext_color
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                        MDLabel:
+                            id: stats_owned
+                            text: "0"
+                            font_style: "H6"
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(12)
+                        spacing: dp(6)
+                        size_hint_y: None
+                        height: self.minimum_height
+                        md_bg_color: app.card_color
+                        radius: [12, 12, 12, 12]
+                        MDLabel:
+                            text: "Played"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: app.subtext_color
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                        MDLabel:
+                            id: stats_played
+                            text: "0"
+                            font_style: "H6"
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(12)
+                        spacing: dp(6)
+                        size_hint_y: None
+                        height: self.minimum_height
+                        md_bg_color: app.card_color
+                        radius: [12, 12, 12, 12]
+                        MDLabel:
+                            text: "Completed (any %)"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: app.subtext_color
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                        MDLabel:
+                            id: stats_completed
+                            text: "0"
+                            font_style: "H6"
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(12)
+                        spacing: dp(6)
+                        size_hint_y: None
+                        height: self.minimum_height
+                        md_bg_color: app.card_color
+                        radius: [12, 12, 12, 12]
+                        MDLabel:
+                            text: "100% completed"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: app.subtext_color
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                        MDLabel:
+                            id: stats_full
+                            text: "0"
+                            font_style: "H6"
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(12)
+                        spacing: dp(6)
+                        size_hint_y: None
+                        height: self.minimum_height
+                        md_bg_color: app.card_color
+                        radius: [12, 12, 12, 12]
+                        MDLabel:
+                            text: "Completion ratio"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: app.subtext_color
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                        MDLabel:
+                            id: stats_ratio
+                            text: "0%"
+                            font_style: "H6"
+
+
+<AboutScreen@MDScreen>:
+    md_bg_color: app.bg_color
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "About"
+            left_action_items: [["menu", lambda x: app.toggle_drawer()]]
+            elevation: 0
+            md_bg_color: app.surface_color
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+            MDLabel:
+                text: "Universal Game Library Tracker"
+                font_style: "H5"
+                theme_text_color: "Custom"
+                text_color: app.text_color
+            MDLabel:
+                text: "A prototype for tracking global game catalogs and personal progress."
+                theme_text_color: "Custom"
+                text_color: app.subtext_color
+
+<RootWidget>:
+    ScreenManager:
+        id: screen_manager
+        HomeScreen:
+            name: "home"
+        LibraryScreen:
+            name: "my_games"
+        DetailScreen:
+            name: "detail"
+        PreferencesScreen:
+            name: "preferences"
+        AccountScreen:
+            name: "account"
+        AboutScreen:
+            name: "about"
+
+    MDNavigationDrawer:
+        id: nav_drawer
+        md_bg_color: app.drawer_color
+        radius: (0, 16, 16, 0)
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(72)
+                spacing: dp(12)
+                MDIconButton:
+                    icon: "account-circle"
+                    user_font_size: "40sp"
+                MDBoxLayout:
+                    orientation: "vertical"
+                    MDLabel:
+                        id: drawer_name
+                        text: "Player One"
+                        font_style: "Subtitle1"
+                        theme_text_color: "Custom"
+                        text_color: app.text_color
+                    MDLabel:
+                        text: "Local profile"
+                        theme_text_color: "Custom"
+                        text_color: app.subtext_color
+            MDSeparator:
+            ScrollView:
+                MDList:
+                    DrawerItem:
+                        icon: "compass-rose"
+                        text: "Discover"
+                        on_release: app.nav_to("home")
+                    DrawerItem:
+                        icon: "gamepad-variant"
+                        text: "My Games"
+                        on_release: app.nav_to("my_games")
+                    DrawerItem:
+                        icon: "tune-variant"
+                        text: "Preferences"
+                        on_release: app.nav_to("preferences")
+                    DrawerItem:
+                        icon: "account"
+                        text: "My Account"
+                        on_release: app.nav_to("account")
+                    DrawerItem:
+                        icon: "information"
+                        text: "About App"
+                        on_release: app.nav_to("about")
