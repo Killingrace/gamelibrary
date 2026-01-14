@@ -225,20 +225,6 @@ class UniversalGameLibraryApp(MDApp):
         self.update_library_filter_buttons()
         self.update_paging(screen, games, "library")
 
-    def apply_library_search(self):
-        self.library_page = 1
-        self.load_library()
-
-    def clear_library_filters(self):
-        screen = self.root.ids.screen_manager.get_screen("my_games")
-        screen.ids.library_search.text = ""
-        screen.ids.library_year_from.text = ""
-        screen.ids.library_year_to.text = ""
-        screen.ids.library_publisher.text = ""
-        screen.ids.library_developer.text = ""
-        self.library_page = 1
-        self.load_library()
-
     def load_account_stats(self):
         stats = self.repo.stats_summary()
         screen = self.root.ids.screen_manager.get_screen("account")
@@ -319,11 +305,6 @@ class UniversalGameLibraryApp(MDApp):
     def collect_library_filters(self):
         screen = self.root.ids.screen_manager.get_screen("my_games")
         filters = {
-            "search": screen.ids.library_search.text.strip(),
-            "year_from": self._parse_int(screen.ids.library_year_from.text),
-            "year_to": self._parse_int(screen.ids.library_year_to.text),
-            "publisher": screen.ids.library_publisher.text.strip(),
-            "developer": screen.ids.library_developer.text.strip(),
             "sort_by": "title",
             "sort_dir": "asc",
         }

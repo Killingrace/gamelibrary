@@ -208,51 +208,6 @@
                     text: "100%"
                     on_release: app.set_library_status("full")
 
-            MDTextField:
-                id: library_search
-                hint_text: "Search my games"
-                mode: "rectangle"
-            MDBoxLayout:
-                size_hint_y: None
-                height: dp(44)
-                spacing: dp(10)
-                MDTextField:
-                    id: library_year_from
-                    hint_text: "Year from"
-                    mode: "rectangle"
-                    input_filter: "int"
-                    size_hint_y: None
-                    height: dp(44)
-                MDTextField:
-                    id: library_year_to
-                    hint_text: "Year to"
-                    mode: "rectangle"
-                    input_filter: "int"
-                    size_hint_y: None
-                    height: dp(44)
-            MDTextField:
-                id: library_publisher
-                hint_text: "Publisher"
-                mode: "rectangle"
-                size_hint_y: None
-                height: dp(44)
-            MDTextField:
-                id: library_developer
-                hint_text: "Developer"
-                mode: "rectangle"
-                size_hint_y: None
-                height: dp(44)
-            MDBoxLayout:
-                size_hint_y: None
-                height: dp(40)
-                spacing: dp(12)
-                MDRaisedButton:
-                    text: "Apply Filters"
-                    on_release: app.apply_library_search()
-                MDFlatButton:
-                    text: "Clear filters"
-                    on_release: app.clear_library_filters()
-
             ScrollView:
                 do_scroll_x: False
                 MDGridLayout:
