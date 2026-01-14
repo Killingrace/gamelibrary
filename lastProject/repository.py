@@ -173,6 +173,21 @@ class GameRepository:
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
 
+    def list_platforms(self):
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT platforms FROM master_games")
+            rows = cursor.fetchall()
+        platforms = set()
+        for (platforms_text,) in rows:
+            if not platforms_text:
+                continue
+            for platform in platforms_text.split(","):
+                platform = platform.strip()
+                if platform:
+                    platforms.add(platform)
+        return sorted(platforms, key=lambda value: value.lower())
+
     def get_game(self, game_id):
         with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row

@@ -8,9 +8,8 @@ from kivy.properties import ListProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivymd.app import MDApp
 from kivymd.uix.card import MDCard
-from kivymd.uix.dialog import MDDialog
 from kivymd.uix.label import MDLabel
-from kivymd.uix.list import OneLineListItem
+from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.navigationdrawer import MDNavigationLayout
 
 from repository import GameRepository
@@ -64,7 +63,7 @@ class UniversalGameLibraryApp(MDApp):
         self.catalog_page = 1
         self.library_page = 1
         self.page_size = 6
-        self.sort_dialog = None
+        self.sort_menu = None
         self._theme_updating = False
 
     def build(self):
@@ -79,6 +78,7 @@ class UniversalGameLibraryApp(MDApp):
 
     def on_start(self):
         self.repo.initialize()
+        self.update_platform_filters()
         self.set_screen("home")
         self.update_profile_label()
         self.set_theme("dark")
@@ -111,28 +111,55 @@ class UniversalGameLibraryApp(MDApp):
         self.set_screen("detail")
 
     def open_sort_menu(self):
-        if self.sort_dialog:
-            self.sort_dialog.open()
+        screen = self.root.ids.screen_manager.get_screen("home")
+        caller = screen.ids.catalog_sort_button
+        if self.sort_menu:
+            self.sort_menu.caller = caller
+            self.sort_menu.open()
             return
-        items = []
-        for label, sort_by, sort_dir in [
-            ("Popular", "popularity", "desc"),
-            ("Name A-Z", "title", "asc"),
-            ("Name Z-A", "title", "desc"),
-            ("Newest", "release_year", "desc"),
-            ("Oldest", "release_year", "asc"),
-        ]:
-            item = OneLineListItem(text=label)
-            item.bind(
-                on_release=lambda x, s=sort_by, d=sort_dir, t=label: self.set_sort(s, d, t)
-            )
-            items.append(item)
-        self.sort_dialog = MDDialog(
-            title="Sort games",
-            type="simple",
+        items = [
+            {
+                "text": "Popular",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda s="popularity", d="desc", t="Popular": self.set_sort(
+                    s, d, t
+                ),
+            },
+            {
+                "text": "Name A-Z",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda s="title", d="asc", t="Name A-Z": self.set_sort(
+                    s, d, t
+                ),
+            },
+            {
+                "text": "Name Z-A",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda s="title", d="desc", t="Name Z-A": self.set_sort(
+                    s, d, t
+                ),
+            },
+            {
+                "text": "Newest",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda s="release_year", d="desc", t="Newest": self.set_sort(
+                    s, d, t
+                ),
+            },
+            {
+                "text": "Oldest",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda s="release_year", d="asc", t="Oldest": self.set_sort(
+                    s, d, t
+                ),
+            },
+        ]
+        self.sort_menu = MDDropdownMenu(
+            caller=caller,
             items=items,
+            width_mult=3,
         )
-        self.sort_dialog.open()
+        self.sort_menu.open()
 
     def set_sort(self, sort_by, sort_dir, label):
         self.catalog_sort = sort_by
@@ -140,8 +167,8 @@ class UniversalGameLibraryApp(MDApp):
         screen = self.root.ids.screen_manager.get_screen("home")
         screen.ids.catalog_sort_label.text = label
         self.catalog_page = 1
-        if self.sort_dialog:
-            self.sort_dialog.dismiss()
+        if self.sort_menu:
+            self.sort_menu.dismiss()
         self.load_catalog()
 
     def toggle_search(self):
@@ -174,7 +201,7 @@ class UniversalGameLibraryApp(MDApp):
         screen.ids.catalog_year_to.text = ""
         screen.ids.catalog_publisher.text = ""
         screen.ids.catalog_developer.text = ""
-        screen.ids.catalog_platform.text = ""
+        screen.ids.catalog_platform.text = "All Platforms"
         screen.ids.catalog_genre.text = ""
         self.catalog_page = 1
         self.load_catalog()
@@ -197,10 +224,6 @@ class UniversalGameLibraryApp(MDApp):
         screen = self.root.ids.screen_manager.get_screen("my_games")
         self.update_library_filter_buttons()
         self.update_paging(screen, games, "library")
-
-    def apply_library_search(self):
-        self.library_page = 1
-        self.load_library()
 
     def load_account_stats(self):
         stats = self.repo.stats_summary()
@@ -282,7 +305,6 @@ class UniversalGameLibraryApp(MDApp):
     def collect_library_filters(self):
         screen = self.root.ids.screen_manager.get_screen("my_games")
         filters = {
-            "search": screen.ids.library_search.text.strip(),
             "sort_by": "title",
             "sort_dir": "asc",
         }
@@ -330,7 +352,9 @@ class UniversalGameLibraryApp(MDApp):
             f"Developer: {game['developer']}\n\n"
             f"Short desc: {description}"
         )
-        screen.ids.detail_platforms_played.text = game.get("platforms_played") or ""
+        screen.ids.detail_platforms_played.text = (
+            game.get("platforms_played") or "Select platform"
+        )
         screen.ids.detail_owned.active = bool(game["owned"])
         screen.ids.detail_played.active = bool(game["played"])
         screen.ids.detail_main_story.active = bool(game.get("main_story_completed"))
@@ -426,6 +450,8 @@ class UniversalGameLibraryApp(MDApp):
         completion_year = screen.ids.detail_completion_year.text.strip()
         notes = screen.ids.detail_notes.text.strip()
         platforms_played = screen.ids.detail_platforms_played.text.strip()
+        if platforms_played == "Select platform":
+            platforms_played = ""
         self.repo.upsert_user_game(
             self.selected_game_id,
             owned,
@@ -452,6 +478,19 @@ class UniversalGameLibraryApp(MDApp):
         account = self.root.ids.screen_manager.get_screen("account")
         account.ids.account_name.text = self.profile_name
         self.root.ids.drawer_name.text = self.profile_name
+
+    def update_platform_filters(self):
+        platforms = self.repo.list_platforms()
+        home = self.root.ids.screen_manager.get_screen("home")
+        detail = self.root.ids.screen_manager.get_screen("detail")
+        home_spinner = home.ids.catalog_platform
+        detail_spinner = detail.ids.detail_platforms_played
+        home_spinner.values = ["All Platforms"] + platforms
+        detail_spinner.values = ["Select platform"] + platforms
+        if home_spinner.text not in home_spinner.values:
+            home_spinner.text = "All Platforms"
+        if detail_spinner.text not in detail_spinner.values:
+            detail_spinner.text = "Select platform"
 
     def toggle_theme(self, is_dark):
         self.set_theme("dark" if is_dark else "light")
@@ -493,7 +532,7 @@ class UniversalGameLibraryApp(MDApp):
     def sort_games(self, games, sort_by, sort_dir):
         reverse = str(sort_dir).lower() == "desc"
         if sort_by == "release_year":
-            return sorted(games, key=lambda item: int(item.get("release_year") or 0), reverse=reverse)
+            return sorted(games, key=lambda item: int(item.get("release_year") or 0), reverse=reverse) 
         if sort_by == "popularity":
             return sorted(games, key=lambda item: int(item.get("popularity") or 0), reverse=reverse)
         return sorted(games, key=lambda item: str(item.get("title") or "").lower(), reverse=reverse)
