@@ -28,6 +28,7 @@
                 height: dp(40)
                 spacing: dp(8)
                 MDIconButton:
+                    id: catalog_sort_button
                     icon: "sort"
                     on_release: app.open_sort_menu()
                 MDIconButton:
@@ -55,84 +56,84 @@
                     mode: "rectangle"
                     on_text: app.on_search_text(self.text)
 
-                MDCard:
-                    id: catalog_filter_card
-                    size_hint_y: None
-                    height: 0
-                    opacity: 0
-                    disabled: True
-                    padding: dp(12)
-                    spacing: dp(10)
-                    orientation: "vertical"
-                    md_bg_color: app.panel_color
-                    radius: [12, 12, 12, 12]
+            MDCard:
+                id: catalog_filter_card
+                size_hint_y: None
+                height: 0
+                opacity: 0
+                disabled: True
+                padding: dp(12)
+                spacing: dp(10)
+                orientation: "vertical"
+                md_bg_color: app.panel_color
+                radius: [12, 12, 12, 12]
 
-                    MDLabel:
-                        text: "Filters"
-                        font_style: "Subtitle1"
-                        theme_text_color: "Custom"
-                        text_color: app.text_color
-                        size_hint_y: None
-                        height: self.texture_size[1]
-                    MDBoxLayout:
-                        size_hint_y: None
-                        height: dp(44)
-                        spacing: dp(10)
-                        MDTextField:
-                            id: catalog_year_from
-                            hint_text: "Year from"
-                            mode: "rectangle"
-                            input_filter: "int"
-                            size_hint_y: None
-                            height: dp(44)
-                        MDTextField:
-                            id: catalog_year_to
-                            hint_text: "Year to"
-                            mode: "rectangle"
-                            input_filter: "int"
-                            size_hint_y: None
-                            height: dp(44)
+                MDLabel:
+                    text: "Filters"
+                    font_style: "Subtitle1"
+                    theme_text_color: "Custom"
+                    text_color: app.text_color
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(44)
+                    spacing: dp(10)
                     MDTextField:
-                        id: catalog_publisher
-                        hint_text: "Publisher"
+                        id: catalog_year_from
+                        hint_text: "Year from"
                         mode: "rectangle"
+                        input_filter: "int"
                         size_hint_y: None
                         height: dp(44)
                     MDTextField:
-                        id: catalog_developer
-                        hint_text: "Developer"
+                        id: catalog_year_to
+                        hint_text: "Year to"
                         mode: "rectangle"
+                        input_filter: "int"
                         size_hint_y: None
                         height: dp(44)
-                    MDCard:
-                        size_hint_y: None
-                        height: dp(48)
-                        radius: [12, 12, 12, 12]
-                        md_bg_color: app.chip_color
-                        padding: dp(6)
-                        Spinner:
-                            id: catalog_platform
-                            text: "All Platforms"
-                            values: ["All Platforms", "PC", "PS3", "PS4", "PS5", "XBOX ONE", "XBOX SERIES", "NINTENDO SWITCH"]
-                            size_hint: 1, 1
-                            background_color: 0, 0, 0, 0
-                            color: app.text_color
-                    MDTextField:
-                        id: catalog_genre
-                        hint_text: "Genre"
-                        mode: "rectangle"
-                        size_hint_y: None
-                        height: dp(44)
-                    MDBoxLayout:
-                        size_hint_y: None
-                        height: dp(40)
-                        spacing: dp(12)
-                        MDRaisedButton:
-                            text: "Apply Filters"
-                            on_release: app.apply_catalog_filters()
-                        MDFlatButton:
-                            text: "Clear filters"
-                            on_release: app.clear_catalog_filters()
+                MDTextField:
+                    id: catalog_publisher
+                    hint_text: "Publisher"
+                    mode: "rectangle"
+                    size_hint_y: None
+                    height: dp(44)
+                MDTextField:
+                    id: catalog_developer
+                    hint_text: "Developer"
+                    mode: "rectangle"
+                    size_hint_y: None
+                    height: dp(44)
+                MDCard:
+                    size_hint_y: None
+                    height: dp(48)
+                    radius: [12, 12, 12, 12]
+                    md_bg_color: app.chip_color
+                    padding: dp(6)
+                    Spinner:
+                        id: catalog_platform
+                        text: "All Platforms"
+                        values: []
+                        size_hint: 1, 1
+                        background_color: 0, 0, 0, 0
+                        color: app.text_color
+                MDTextField:
+                    id: catalog_genre
+                    hint_text: "Genre"
+                    mode: "rectangle"
+                    size_hint_y: None
+                    height: dp(44)
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(40)
+                    spacing: dp(12)
+                    MDRaisedButton:
+                        text: "Apply Filters"
+                        on_release: app.apply_catalog_filters()
+                    MDFlatButton:
+                        text: "Clear filters"
+                        on_release: app.clear_catalog_filters()
 
             ScrollView:
                 do_scroll_x: False
@@ -211,9 +212,46 @@
                 id: library_search
                 hint_text: "Search my games"
                 mode: "rectangle"
-            MDFlatButton:
-                text: "Apply Search"
-                on_release: app.apply_library_search()
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(44)
+                spacing: dp(10)
+                MDTextField:
+                    id: library_year_from
+                    hint_text: "Year from"
+                    mode: "rectangle"
+                    input_filter: "int"
+                    size_hint_y: None
+                    height: dp(44)
+                MDTextField:
+                    id: library_year_to
+                    hint_text: "Year to"
+                    mode: "rectangle"
+                    input_filter: "int"
+                    size_hint_y: None
+                    height: dp(44)
+            MDTextField:
+                id: library_publisher
+                hint_text: "Publisher"
+                mode: "rectangle"
+                size_hint_y: None
+                height: dp(44)
+            MDTextField:
+                id: library_developer
+                hint_text: "Developer"
+                mode: "rectangle"
+                size_hint_y: None
+                height: dp(44)
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(40)
+                spacing: dp(12)
+                MDRaisedButton:
+                    text: "Apply Filters"
+                    on_release: app.apply_library_search()
+                MDFlatButton:
+                    text: "Clear filters"
+                    on_release: app.clear_library_filters()
 
             ScrollView:
                 do_scroll_x: False
@@ -333,7 +371,7 @@
                         Spinner:
                             id: detail_platforms_played
                             text: "Select platform"
-                            values: ["Select platform", "PC", "PS3", "PS4", "PS5", "XBOX ONE", "XBOX SERIES", "NINTENDO SWITCH"]
+                            values: []
                             size_hint: 1, 1
                             background_color: 0, 0, 0, 0
                             color: app.text_color
