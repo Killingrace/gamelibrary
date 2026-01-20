@@ -84,7 +84,7 @@ class UniversalGameLibraryApp(MDApp):
         self.set_theme("dark")
 
     def set_screen(self, screen_name):
-        self.root.ids.screen_manager.current = screen_name
+        self._screen_manager().current = screen_name
         if screen_name == "home":
             self.load_catalog()
         elif screen_name == "my_games":
@@ -111,7 +111,7 @@ class UniversalGameLibraryApp(MDApp):
         self.set_screen("detail")
 
     def open_sort_menu(self):
-        screen = self.root.ids.screen_manager.get_screen("home")
+        screen = self._screen("home")
         caller = screen.ids.catalog_sort_button
         if self.sort_menu:
             self.sort_menu.caller = caller
@@ -164,7 +164,7 @@ class UniversalGameLibraryApp(MDApp):
     def set_sort(self, sort_by, sort_dir, label):
         self.catalog_sort = sort_by
         self.catalog_sort_dir = sort_dir
-        screen = self.root.ids.screen_manager.get_screen("home")
+        screen = self._screen("home")
         screen.ids.catalog_sort_label.text = label
         self.catalog_page = 1
         if self.sort_menu:
@@ -172,7 +172,7 @@ class UniversalGameLibraryApp(MDApp):
         self.load_catalog()
 
     def toggle_search(self):
-        screen = self.root.ids.screen_manager.get_screen("home")
+        screen = self._screen("home")
         container = screen.ids.catalog_search_container
         self.search_open = not self.search_open
         container.height = dp(48) if self.search_open else 0
@@ -183,7 +183,7 @@ class UniversalGameLibraryApp(MDApp):
             self.load_catalog()
 
     def toggle_filter_panel(self):
-        screen = self.root.ids.screen_manager.get_screen("home")
+        screen = self._screen("home")
         card = screen.ids.catalog_filter_card
         self.filter_open = not self.filter_open
         card.height = card.minimum_height if self.filter_open else 0
@@ -196,7 +196,7 @@ class UniversalGameLibraryApp(MDApp):
             self.load_catalog()
 
     def clear_catalog_filters(self):
-        screen = self.root.ids.screen_manager.get_screen("home")
+        screen = self._screen("home")
         screen.ids.catalog_year_from.text = ""
         screen.ids.catalog_year_to.text = ""
         screen.ids.catalog_publisher.text = ""
@@ -214,20 +214,20 @@ class UniversalGameLibraryApp(MDApp):
         filters = self.collect_catalog_filters()
         games = self.repo.list_master_games(filters)
         games = self.sort_games(games, self.catalog_sort, self.catalog_sort_dir)
-        screen = self.root.ids.screen_manager.get_screen("home")
+        screen = self._screen("home")
         self.update_paging(screen, games, "catalog")
 
     def load_library(self):
         filters = self.collect_library_filters()
         games = self.repo.list_library_games(filters)
         games = self.sort_games(games, "title", "asc")
-        screen = self.root.ids.screen_manager.get_screen("my_games")
+        screen = self._screen("my_games")
         self.update_library_filter_buttons()
         self.update_paging(screen, games, "library")
 
     def load_account_stats(self):
         stats = self.repo.stats_summary()
-        screen = self.root.ids.screen_manager.get_screen("account")
+        screen = self._screen("account")
         screen.ids.stats_total.text = str(stats["total_games"])
         screen.ids.stats_owned.text = str(stats["owned"])
         screen.ids.stats_played.text = str(stats["played"])
@@ -286,7 +286,7 @@ class UniversalGameLibraryApp(MDApp):
         return card
 
     def collect_catalog_filters(self):
-        screen = self.root.ids.screen_manager.get_screen("home")
+        screen = self._screen("home")
         platform = screen.ids.catalog_platform.text.strip()
         if platform == "All Platforms":
             platform = ""
@@ -303,7 +303,6 @@ class UniversalGameLibraryApp(MDApp):
         }
 
     def collect_library_filters(self):
-        screen = self.root.ids.screen_manager.get_screen("my_games")
         filters = {
             "sort_by": "title",
             "sort_dir": "asc",
@@ -324,7 +323,7 @@ class UniversalGameLibraryApp(MDApp):
         self.load_library()
 
     def update_library_filter_buttons(self):
-        screen = self.root.ids.screen_manager.get_screen("my_games")
+        screen = self._screen("my_games")
         mapping = {
             "all": screen.ids.library_filter_all,
             "owned": screen.ids.library_filter_owned,
@@ -341,7 +340,7 @@ class UniversalGameLibraryApp(MDApp):
         game = self.repo.get_game(game_id)
         if not game:
             return
-        screen = self.root.ids.screen_manager.get_screen("detail")
+        screen = self._screen("detail")
         screen.ids.detail_title.text = game["title"]
         description = game.get("description") or ""
         screen.ids.detail_description.text = (
@@ -400,12 +399,12 @@ class UniversalGameLibraryApp(MDApp):
             gallery.add_widget(card)
 
     def update_completion_label(self, value):
-        screen = self.root.ids.screen_manager.get_screen("detail")
+        screen = self._screen("detail")
         screen.ids.detail_completion_label.text = f"{int(value)}%"
         self.refresh_detail_status()
 
     def refresh_detail_status(self):
-        screen = self.root.ids.screen_manager.get_screen("detail")
+        screen = self._screen("detail")
         game = {
             "owned": screen.ids.detail_owned.active,
             "played": screen.ids.detail_played.active,
@@ -433,7 +432,7 @@ class UniversalGameLibraryApp(MDApp):
     def save_detail(self):
         if not self.selected_game_id:
             return
-        screen = self.root.ids.screen_manager.get_screen("detail")
+        screen = self._screen("detail")
         owned = screen.ids.detail_owned.active
         played = screen.ids.detail_played.active
         main_story_completed = screen.ids.detail_main_story.active
@@ -441,11 +440,8 @@ class UniversalGameLibraryApp(MDApp):
         if completion_pct > 0:
             played = True
             screen.ids.detail_played.active = True
-        hours_text = screen.ids.detail_hours.text.strip()
-        try:
-            hours_played = float(hours_text) if hours_text else 0.0
-        except ValueError:
-            hours_played = 0.0
+        hours_played, hours_invalid = self._coerce_float(screen.ids.detail_hours.text)
+        if hours_invalid:
             screen.ids.detail_hours.text = "0"
         completion_year = screen.ids.detail_completion_year.text.strip()
         notes = screen.ids.detail_notes.text.strip()
@@ -468,21 +464,21 @@ class UniversalGameLibraryApp(MDApp):
         self.load_account_stats()
 
     def update_profile(self):
-        screen = self.root.ids.screen_manager.get_screen("account")
+        screen = self._screen("account")
         nickname = screen.ids.account_nickname.text.strip()
         if nickname:
             self.profile_name = nickname
         self.update_profile_label()
-        # update profile label
+
     def update_profile_label(self):
-        account = self.root.ids.screen_manager.get_screen("account")
+        account = self._screen("account")
         account.ids.account_name.text = self.profile_name
         self.root.ids.drawer_name.text = self.profile_name
 
     def update_platform_filters(self):
         platforms = self.repo.list_platforms()
-        home = self.root.ids.screen_manager.get_screen("home")
-        detail = self.root.ids.screen_manager.get_screen("detail")
+        home = self._screen("home")
+        detail = self._screen("detail")
         home_spinner = home.ids.catalog_platform
         detail_spinner = detail.ids.detail_platforms_played
         home_spinner.values = ["All Platforms"] + platforms
@@ -524,7 +520,7 @@ class UniversalGameLibraryApp(MDApp):
             self.muted_text_color = [0.45, 0.45, 0.55, 1]
         Window.clearcolor = self.bg_color
         if self.root:
-            prefs = self.root.ids.screen_manager.get_screen("preferences")
+            prefs = self._screen("preferences")
             prefs.ids.pref_dark_mode.active = is_dark
             prefs.ids.pref_light_mode.active = not is_dark
         self._theme_updating = False
@@ -532,9 +528,17 @@ class UniversalGameLibraryApp(MDApp):
     def sort_games(self, games, sort_by, sort_dir):
         reverse = str(sort_dir).lower() == "desc"
         if sort_by == "release_year":
-            return sorted(games, key=lambda item: int(item.get("release_year") or 0), reverse=reverse) 
+            return sorted(
+                games,
+                key=lambda item: int(item.get("release_year") or 0),
+                reverse=reverse,
+            )
         if sort_by == "popularity":
-            return sorted(games, key=lambda item: int(item.get("popularity") or 0), reverse=reverse)
+            return sorted(
+                games,
+                key=lambda item: int(item.get("popularity") or 0),
+                reverse=reverse,
+            )
         return sorted(games, key=lambda item: str(item.get("title") or "").lower(), reverse=reverse)
 
     def update_paging(self, screen, games, prefix):
@@ -580,13 +584,28 @@ class UniversalGameLibraryApp(MDApp):
         self.load_library()
 
     def _parse_int(self, value):
-        value = value.strip()
+        value = (value or "").strip()
         if not value:
             return None
         try:
             return int(value)
         except ValueError:
             return None
+
+    def _coerce_float(self, value):
+        value = (value or "").strip()
+        if not value:
+            return 0.0, False
+        try:
+            return float(value), False
+        except ValueError:
+            return 0.0, True
+
+    def _screen_manager(self):
+        return self.root.ids.screen_manager
+
+    def _screen(self, screen_name):
+        return self._screen_manager().get_screen(screen_name)
 
 
 if __name__ == "__main__":

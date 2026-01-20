@@ -17,8 +17,11 @@ class GameRepository:
         self._seed_master_games()
         self._refresh_master_games()
 
-    def _get_connection(self):
-        return sqlite3.connect(self.db_path)
+    def _get_connection(self, row_factory=None):
+        conn = sqlite3.connect(self.db_path)
+        if row_factory:
+            conn.row_factory = row_factory
+        return conn
 
     def _create_tables(self):
         with self._get_connection() as conn:
@@ -152,8 +155,7 @@ class GameRepository:
 
     def list_master_games(self, filters):
         query, params = self._build_master_query(filters, include_order=True)
-        with self._get_connection() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection(sqlite3.Row) as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
@@ -167,8 +169,7 @@ class GameRepository:
         )
         query += base_filter
         query = self._apply_order(query, filters)
-        with self._get_connection() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection(sqlite3.Row) as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
@@ -189,8 +190,7 @@ class GameRepository:
         return sorted(platforms, key=lambda value: value.lower())
 
     def get_game(self, game_id):
-        with self._get_connection() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection(sqlite3.Row) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
