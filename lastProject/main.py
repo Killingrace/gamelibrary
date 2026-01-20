@@ -6,6 +6,7 @@ from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.properties import ListProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.image import Image
 from kivymd.app import MDApp
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
@@ -51,6 +52,8 @@ class UniversalGameLibraryApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         base_dir = os.path.dirname(__file__)
+        self.base_dir = base_dir
+        self.project_dir = os.path.dirname(base_dir)
         self.repo = GameRepository(base_dir)
         self.selected_game_id = None
         self.previous_screen = "home"
@@ -249,6 +252,7 @@ class UniversalGameLibraryApp(MDApp):
         card.bind(on_release=partial(self.open_detail, game["id"], screen_name))
 
         layout = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6))
+        cover_source = self._first_screenshot(game)
         cover = MDCard(
             size_hint_y=None,
             height=dp(96),
@@ -256,15 +260,18 @@ class UniversalGameLibraryApp(MDApp):
             md_bg_color=self.chip_color,
             elevation=0,
         )
-        cover.add_widget(
-            MDLabel(
-                text="Cover",
-                halign="center",
-                valign="middle",
-                theme_text_color="Custom",
-                text_color=self.subtext_color,
+        if cover_source:
+            cover.add_widget(Image(source=cover_source, fit_mode="cover"))
+        else:
+            cover.add_widget(
+                MDLabel(
+                    text="Cover",
+                    halign="center",
+                    valign="middle",
+                    theme_text_color="Custom",
+                    text_color=self.subtext_color,
+                )
             )
-        )
         title = MDLabel(
             text=game["title"],
             font_style="Subtitle1",
@@ -390,24 +397,37 @@ class UniversalGameLibraryApp(MDApp):
             shots = ["Screenshot"]
         for index, shot in enumerate(shots, start=1):
             card = MDCard(
-                size_hint_x=None,
-                width=dp(140),
+                size_hint=(1, 1),
                 size_hint_y=None,
-                height=dp(96),
+                height=gallery.height,
                 radius=[12, 12, 12, 12],
                 md_bg_color=self.chip_color,
                 elevation=0,
             )
-            card.add_widget(
-                MDLabel(
-                    text=f"Shot {index}",
-                    halign="center",
-                    valign="middle",
-                    theme_text_color="Custom",
-                    text_color=self.subtext_color,
+            source = self._resolve_media_path(shot)
+            if source:
+                card.add_widget(Image(source=source, fit_mode="cover"))
+            else:
+                card.add_widget(
+                    MDLabel(
+                        text=f"Shot {index}",
+                        halign="center",
+                        valign="middle",
+                        theme_text_color="Custom",
+                        text_color=self.subtext_color,
+                    )
                 )
-            )
             gallery.add_widget(card)
+        if hasattr(gallery, "index"):
+            gallery.index = 0
+
+    def gallery_prev(self):
+        screen = self._screen("detail")
+        screen.ids.detail_gallery.load_previous()
+
+    def gallery_next(self):
+        screen = self._screen("detail")
+        screen.ids.detail_gallery.load_next()
 
     def update_completion_label(self, value):
         screen = self._screen("detail")
@@ -611,6 +631,26 @@ class UniversalGameLibraryApp(MDApp):
             return float(value), False
         except ValueError:
             return 0.0, True
+
+    def _resolve_media_path(self, source):
+        source = (source or "").strip()
+        if not source:
+            return ""
+        if os.path.isabs(source) and os.path.exists(source):
+            return source
+        for base in (self.base_dir, self.project_dir):
+            candidate = os.path.join(base, source)
+            if os.path.exists(candidate):
+                return candidate
+        return ""
+
+    def _first_screenshot(self, game):
+        shots = (game.get("screenshots") or "").split("|")
+        for shot in shots:
+            path = self._resolve_media_path(shot)
+            if path:
+                return path
+        return ""
 
     def _screen_manager(self):
         return self.root.ids.screen_manager

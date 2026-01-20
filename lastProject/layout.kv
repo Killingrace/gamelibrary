@@ -254,6 +254,27 @@
                 padding: dp(16)
                 spacing: dp(12)
 
+                MDBoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+                    Carousel:
+                        id: detail_gallery
+                        size_hint_y: None
+                        height: self.width * 9 / 16
+                        loop: False
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(36)
+                        spacing: dp(12)
+                        MDRaisedButton:
+                            text: "Prev"
+                            on_release: app.gallery_prev()
+                        MDRaisedButton:
+                            text: "Next"
+                            on_release: app.gallery_next()
+
                 MDCard:
                     orientation: "vertical"
                     padding: dp(12)
@@ -262,6 +283,9 @@
                     height: self.minimum_height
                     md_bg_color: app.card_color
                     radius: [12, 12, 12, 12]
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(5)
                     MDLabel:
                         id: detail_title
                         text: "Game Title"
@@ -280,22 +304,6 @@
                         height: self.texture_size[1]
                         text_size: self.width, None
                         line_height: 1.2
-
-                MDLabel:
-                    text: "Gallery"
-                    font_style: "Subtitle1"
-                    theme_text_color: "Custom"
-                    text_color: app.text_color
-                ScrollView:
-                    size_hint_y: None
-                    height: dp(120)
-                    do_scroll_y: False
-                    MDBoxLayout:
-                        id: detail_gallery
-                        spacing: dp(10)
-                        padding: dp(4)
-                        size_hint_x: None
-                        width: self.minimum_width
 
                 MDCard:
                     orientation: "vertical"
