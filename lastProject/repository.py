@@ -199,6 +199,9 @@ class GameRepository:
                        COALESCE(u.completion_pct, 0) AS completion_pct,
                        COALESCE(u.hours_played, 0) AS hours_played,
                        COALESCE(u.notes, '') AS notes,
+                       COALESCE(u.completion_year, '') AS completion_year,
+                       COALESCE(u.platforms_played, '') AS platforms_played,
+                       COALESCE(u.main_story_completed, 0) AS main_story_completed,
                        u.last_updated AS last_updated
                 FROM master_games m
                 LEFT JOIN user_games u ON m.id = u.game_id
