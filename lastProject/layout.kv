@@ -140,6 +140,8 @@
                 MDGridLayout:
                     id: catalog_grid
                     cols: 2
+                    col_force_default: True
+                    col_default_width: (self.width - dp(8) - dp(12)) / 2
                     spacing: dp(12)
                     padding: dp(4)
                     size_hint_y: None
@@ -213,6 +215,8 @@
                 MDGridLayout:
                     id: library_grid
                     cols: 2
+                    col_force_default: True
+                    col_default_width: (self.width - dp(8) - dp(12)) / 2
                     spacing: dp(12)
                     padding: dp(4)
                     size_hint_y: None
@@ -527,7 +531,7 @@
                         padding: dp(12)
                         spacing: dp(6)
                         size_hint_y: None
-                        height: self.minimum_height
+                        height: self.minimum_height * 1.5
                         md_bg_color: app.card_color
                         radius: [12, 12, 12, 12]
                         MDLabel:
@@ -546,7 +550,7 @@
                         padding: dp(12)
                         spacing: dp(6)
                         size_hint_y: None
-                        height: self.minimum_height
+                        height: self.minimum_height * 1.5
                         md_bg_color: app.card_color
                         radius: [12, 12, 12, 12]
                         MDLabel:
@@ -565,7 +569,7 @@
                         padding: dp(12)
                         spacing: dp(6)
                         size_hint_y: None
-                        height: self.minimum_height
+                        height: self.minimum_height * 1.5
                         md_bg_color: app.card_color
                         radius: [12, 12, 12, 12]
                         MDLabel:
@@ -584,7 +588,7 @@
                         padding: dp(12)
                         spacing: dp(6)
                         size_hint_y: None
-                        height: self.minimum_height
+                        height: self.minimum_height * 1.5
                         md_bg_color: app.card_color
                         radius: [12, 12, 12, 12]
                         MDLabel:
@@ -603,7 +607,7 @@
                         padding: dp(12)
                         spacing: dp(6)
                         size_hint_y: None
-                        height: self.minimum_height
+                        height: self.minimum_height * 1.5
                         md_bg_color: app.card_color
                         radius: [12, 12, 12, 12]
                         MDLabel:
@@ -622,7 +626,7 @@
                         padding: dp(12)
                         spacing: dp(6)
                         size_hint_y: None
-                        height: self.minimum_height
+                        height: self.minimum_height * 1.5
                         md_bg_color: app.card_color
                         radius: [12, 12, 12, 12]
                         MDLabel:
