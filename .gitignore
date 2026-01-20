@@ -1,5 +1,9 @@
-.buildozer
-myvenv
-bin
+.buildozer/
+bin/
+build/
+dist/
+myvenv/
+venv/
+*__pycache__/
+*.py[cod]
 buildozer.spec
-__pycache__
