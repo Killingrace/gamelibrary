@@ -311,8 +311,8 @@ class UniversalGameLibraryApp(MDApp):
             filters["owned_only"] = True
         elif self.library_status == "played":
             filters["played_only"] = True
-        elif self.library_status == "completed":
-            filters["completed_only"] = True
+        elif self.library_status == "main_story":
+            filters["main_story_only"] = True
         elif self.library_status == "full":
             filters["full_only"] = True
         return filters
@@ -328,7 +328,7 @@ class UniversalGameLibraryApp(MDApp):
             "all": screen.ids.library_filter_all,
             "owned": screen.ids.library_filter_owned,
             "played": screen.ids.library_filter_played,
-            "completed": screen.ids.library_filter_completed,
+            "main_story": screen.ids.library_filter_main_story,
             "full": screen.ids.library_filter_full,
         }
         for key, button in mapping.items():
@@ -420,10 +420,10 @@ class UniversalGameLibraryApp(MDApp):
         if game.get("played"):
             flags.append("Played")
         if game.get("main_story_completed"):
-            flags.append("Main story")
+            flags.append("Main story completed")
         completion_pct = int(game.get("completion_pct") or 0)
         if completion_pct > 0 and completion_pct < 100:
-            flags.append("Completed")
+            flags.append(f"Progress {completion_pct}%")
         if completion_pct == 100:
             flags.append("Completed 100%")
         status_text = ", ".join(flags) if flags else "No status set"
