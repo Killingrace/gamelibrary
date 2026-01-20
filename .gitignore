@@ -1,0 +1,5 @@
+.buildozer
+myvenv
+bin
+buildozer.spec
+__pycache__
