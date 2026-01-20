@@ -236,11 +236,12 @@ class UniversalGameLibraryApp(MDApp):
         screen.ids.stats_ratio.text = f"{stats['completion_ratio']:.1f}%"
 
     def build_game_card(self, game, screen_name):
+        card_height = dp(210) if screen_name == "my_games" else dp(190)
         card = GameCard(
             game_id=game["id"],
             source_screen=screen_name,
             size_hint_y=None,
-            height=dp(190),
+            height=card_height,
             radius=[16, 16, 16, 16],
             md_bg_color=self.card_color,
             elevation=2,
@@ -282,6 +283,16 @@ class UniversalGameLibraryApp(MDApp):
         layout.add_widget(cover)
         layout.add_widget(title)
         layout.add_widget(year)
+        if screen_name == "my_games":
+            progress_pct = int(game.get("completion_pct") or 0)
+            progress = MDLabel(
+                text=f"Progress: {progress_pct}%",
+                theme_text_color="Custom",
+                text_color=self.subtext_color,
+                size_hint_y=None,
+                height=dp(18),
+            )
+            layout.add_widget(progress)
         card.add_widget(layout)
         return card
 
