@@ -3,6 +3,7 @@ from functools import partial
 
 from kivy.core.window import Window
 from kivy.lang import Builder
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.properties import ListProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
@@ -65,7 +66,7 @@ class UniversalGameLibraryApp(MDApp):
         self.profile_name = "Player One"
         self.catalog_page = 1
         self.library_page = 1
-        self.page_size = 6
+        self.page_size = 8
         self.sort_menu = None
         self._theme_updating = False
 
@@ -74,6 +75,7 @@ class UniversalGameLibraryApp(MDApp):
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "DeepPurple"
         self.theme_cls.accent_palette = "Purple"
+        Window.size = (600, 1050)
         Window.clearcolor = (0, 0, 0, 1)
         kv_path = os.path.join(os.path.dirname(__file__), "layout.kv")
         Builder.load_file(kv_path)
@@ -383,11 +385,13 @@ class UniversalGameLibraryApp(MDApp):
         updated = game["last_updated"] or "Never"
         screen.ids.detail_updated.text = f"Last updated: {updated}"
         self.update_status_line(screen, game)
-        self.populate_gallery(screen, game)
+        Clock.schedule_once(lambda *_: self.populate_gallery(screen, game), 0)
 
     def populate_gallery(self, screen, game):
         gallery = screen.ids.detail_gallery
         gallery.clear_widgets()
+        gallery.unbind(height=self._sync_gallery_heights)
+        gallery.bind(height=self._sync_gallery_heights)
         shots = [
             shot.strip()
             for shot in (game.get("screenshots") or "").split("|")
@@ -418,8 +422,16 @@ class UniversalGameLibraryApp(MDApp):
                     )
                 )
             gallery.add_widget(card)
+        Clock.schedule_once(lambda *_: self._sync_gallery_heights(gallery, gallery.height), 0)
+        Clock.schedule_once(lambda *_: self._reset_gallery_index(gallery), 0)
+
+    def _reset_gallery_index(self, gallery):
         if hasattr(gallery, "index"):
             gallery.index = 0
+
+    def _sync_gallery_heights(self, gallery, value):
+        for slide in gallery.slides:
+            slide.height = value
 
     def gallery_prev(self):
         screen = self._screen("detail")
