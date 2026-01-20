@@ -2,8 +2,6 @@ import os
 import sqlite3
 from datetime import datetime
 
-from data import MASTER_GAMES
-
 DATABASE_NAME = "games.db"
 
 
@@ -14,11 +12,12 @@ class GameRepository:
     def initialize(self):
         self._create_tables()
         self._ensure_columns()
-        self._seed_master_games()
-        self._refresh_master_games()
 
-    def _get_connection(self):
-        return sqlite3.connect(self.db_path)
+    def _get_connection(self, row_factory=None):
+        conn = sqlite3.connect(self.db_path)
+        if row_factory:
+            conn.row_factory = row_factory
+        return conn
 
     def _create_tables(self):
         with self._get_connection() as conn:
@@ -92,68 +91,10 @@ class GameRepository:
                     )
             conn.commit()
 
-    def _seed_master_games(self):
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM master_games")
-            count = cursor.fetchone()[0]
-            if count > 0:
-                return
-            for game in MASTER_GAMES:
-                cursor.execute(
-                    """
-                    INSERT INTO master_games (
-                        title, release_year, platforms, genres, developer, publisher,
-                        franchise, release_date, platform_category, description,
-                        popularity, screenshots
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        game["title"],
-                        game["release_year"],
-                        game["platforms"],
-                        game["genres"],
-                        game["developer"],
-                        game["publisher"],
-                        game["franchise"],
-                        game["release_date"],
-                        game["platform_category"],
-                        game["description"],
-                        int(game["popularity"]),
-                        game["screenshots"],
-                    ),
-                )
-            conn.commit()
-
-    def _refresh_master_games(self):
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            for game in MASTER_GAMES:
-                cursor.execute(
-                    """
-                    UPDATE master_games
-                    SET developer = ?,
-                        publisher = ?,
-                        description = ?,
-                        popularity = ?,
-                        screenshots = ?
-                    WHERE title = ?
-                    """,
-                    (
-                        game["developer"],
-                        game["publisher"],
-                        game["description"],
-                        int(game["popularity"]),
-                        game["screenshots"],
-                        game["title"],
-                    ),
-                )
-            conn.commit()
 
     def list_master_games(self, filters):
         query, params = self._build_master_query(filters, include_order=True)
-        with self._get_connection() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection(sqlite3.Row) as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
@@ -163,12 +104,12 @@ class GameRepository:
         base_filter = (
             " AND (COALESCE(u.owned, 0) = 1 "
             "OR COALESCE(u.played, 0) = 1 "
-            "OR COALESCE(u.completion_pct, 0) > 0)"
+            "OR COALESCE(u.completion_pct, 0) > 0 "
+            "OR COALESCE(u.main_story_completed, 0) = 1)"
         )
         query += base_filter
         query = self._apply_order(query, filters)
-        with self._get_connection() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection(sqlite3.Row) as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
@@ -189,8 +130,7 @@ class GameRepository:
         return sorted(platforms, key=lambda value: value.lower())
 
     def get_game(self, game_id):
-        with self._get_connection() as conn:
-            conn.row_factory = sqlite3.Row
+        with self._get_connection(sqlite3.Row) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -199,6 +139,9 @@ class GameRepository:
                        COALESCE(u.completion_pct, 0) AS completion_pct,
                        COALESCE(u.hours_played, 0) AS hours_played,
                        COALESCE(u.notes, '') AS notes,
+                       COALESCE(u.completion_year, '') AS completion_year,
+                       COALESCE(u.platforms_played, '') AS platforms_played,
+                       COALESCE(u.main_story_completed, 0) AS main_story_completed,
                        u.last_updated AS last_updated
                 FROM master_games m
                 LEFT JOIN user_games u ON m.id = u.game_id
@@ -336,6 +279,9 @@ class GameRepository:
 
         if filters.get("played_only"):
             query += " AND COALESCE(u.played, 0) = 1"
+
+        if filters.get("main_story_only"):
+            query += " AND COALESCE(u.main_story_completed, 0) = 1"
 
         if filters.get("completed_only"):
             query += " AND COALESCE(u.completion_pct, 0) > 0"
