@@ -10,8 +10,7 @@ class GameRepository:
         self.db_path = os.path.join(base_dir, DATABASE_NAME)
 
     def initialize(self):
-        self._create_tables()
-        self._ensure_columns()
+        self._create_schema()
 
     def _get_connection(self, row_factory=None):
         conn = sqlite3.connect(self.db_path)
@@ -19,10 +18,10 @@ class GameRepository:
             conn.row_factory = row_factory
         return conn
 
-    def _create_tables(self):
+    def _create_schema(self):
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
+            cursor.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS master_games (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,65 +29,30 @@ class GameRepository:
                     release_year INTEGER NOT NULL,
                     platforms TEXT NOT NULL,
                     genres TEXT NOT NULL,
-                    developer TEXT NOT NULL,
-                    publisher TEXT NOT NULL,
+                    developer TEXT NOT NULL DEFAULT '',
+                    publisher TEXT NOT NULL DEFAULT '',
                     franchise TEXT,
                     release_date TEXT NOT NULL,
                     platform_category TEXT NOT NULL,
-                    description TEXT NOT NULL,
-                    popularity INTEGER NOT NULL,
-                    screenshots TEXT NOT NULL
-                )
-                """
-            )
-            cursor.execute(
-                """
+                    description TEXT NOT NULL DEFAULT '',
+                    popularity INTEGER NOT NULL DEFAULT 0,
+                    screenshots TEXT NOT NULL DEFAULT ''
+                );
                 CREATE TABLE IF NOT EXISTS user_games (
                     game_id INTEGER PRIMARY KEY,
                     owned INTEGER NOT NULL DEFAULT 0,
                     played INTEGER NOT NULL DEFAULT 0,
                     completion_pct INTEGER NOT NULL DEFAULT 0,
+                    main_story_completed INTEGER NOT NULL DEFAULT 0,
                     hours_played REAL NOT NULL DEFAULT 0,
                     notes TEXT NOT NULL DEFAULT '',
                     completion_year TEXT NOT NULL DEFAULT '',
                     platforms_played TEXT NOT NULL DEFAULT '',
                     last_updated TEXT NOT NULL,
                     FOREIGN KEY(game_id) REFERENCES master_games(id)
-                )
+                );
                 """
             )
-            conn.commit()
-
-    def _ensure_columns(self):
-        self._ensure_table_columns(
-            "master_games",
-            {
-                "developer": "TEXT NOT NULL DEFAULT ''",
-                "publisher": "TEXT NOT NULL DEFAULT ''",
-                "description": "TEXT NOT NULL DEFAULT ''",
-                "popularity": "INTEGER NOT NULL DEFAULT 0",
-                "screenshots": "TEXT NOT NULL DEFAULT ''",
-            },
-        )
-        self._ensure_table_columns(
-            "user_games",
-            {
-                "completion_year": "TEXT NOT NULL DEFAULT ''",
-                "platforms_played": "TEXT NOT NULL DEFAULT ''",
-                "main_story_completed": "INTEGER NOT NULL DEFAULT 0",
-            },
-        )
-
-    def _ensure_table_columns(self, table_name, columns):
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(f"PRAGMA table_info({table_name})")
-            existing = {row[1] for row in cursor.fetchall()}
-            for column, definition in columns.items():
-                if column not in existing:
-                    cursor.execute(
-                        f"ALTER TABLE {table_name} ADD COLUMN {column} {definition}"
-                    )
             conn.commit()
 
 
